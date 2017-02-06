@@ -81,3 +81,15 @@ TEST_F(CTInstancePoolTest, iterator) {
 	ASSERT_EQ(++v.begin(), v.end());
 	ASSERT_EQ(v.begin(), --v.end());
 }
+
+TEST_F(CTInstancePoolTest, remove_instance) {
+
+	CTInstancePool<TestData> v;
+	v.add(TestData(100));
+	auto handle = v.add(TestData(200));
+	v.add(TestData(300));
+	ASSERT_EQ(v.size(), 3);
+
+	v.remove(handle);
+	ASSERT_EQ(v.size(), 2);
+}

@@ -130,18 +130,23 @@ public:
 		}
 		else {
 			// unmark end of buffer
-			(--m_buffers.end()).m_end = false;
+			if( 0 < m_buffers.size() ) {
+				(--m_buffers.end())->m_end = false;
+			}
 
 			m_buffers.emplace_back(Buffer::Status::Used, ins );
 			createdIndex = static_cast<int16_t>(m_buffers.size() - 1);
 
 			// mark end of buffer
-			(--m_buffers.end()).m_end = true;
+			(--m_buffers.end())->m_end = true;
 		}
 
 		++m_usedSize;
 
 		return Handle(createdIndex, m_recycleCount);
+	}
+
+	void remove(const Handle& handle ) {
 	}
 
 public:// util methods
