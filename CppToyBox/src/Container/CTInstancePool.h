@@ -3,7 +3,7 @@
 #include <vector>
 #include <algorithm>
 
-template< typename Value >
+template< typename Instance >
 class CTInstancePool
 {
 private:
@@ -17,13 +17,13 @@ private:
 	public:
 		Status m_status : 7;
 		bool m_end : 1;//end of instance pool
-		Value m_value;
+		Instance m_value;
 
 	public:
 		Buffer()
 			:m_status(false)
 		{}
-		Buffer(const Status status, const Value& value)
+		Buffer(const Status status, const Instance& value)
 			:m_status(status)
 			,m_value(std::move(value))
 		{}
@@ -69,8 +69,8 @@ public:
 			return *this;
 		}
 
-		Value& operator*() { return m_ite->m_value; }
-		Value* operator->() { return &m_ite->m_value; }
+		Instance& operator*() { return m_ite->m_value; }
+		Instance* operator->() { return &m_ite->m_value; }
 
 		bool operator==(const Iterator rhs) const {
 			return m_ite == rhs.m_ite;
@@ -104,11 +104,11 @@ public:
 
 	void reserve(size_t s) { m_buffers.reserve(s); }
 
-	Value& operator[](const Handle& h) {
+	Instance& operator[](const Handle& h) {
 		return m_buffers[h.get_index()].m_value;
 	}
 
-	Handle add(const Value& v) {
+	Handle add(const Instance& v) {
 
 		++m_recycleCount;
 
@@ -119,7 +119,7 @@ public:
 				return buffer.m_status == Buffer::Status::Unuse;
 			});
 			assert(retIte != m_buffers.end());
-			new(&retIte->m_value) Value(v);
+			new(&retIte->m_value) Instance(v);
 			retIte->m_status = Buffer::Status::Used;
 			--m_freeSize;
 
