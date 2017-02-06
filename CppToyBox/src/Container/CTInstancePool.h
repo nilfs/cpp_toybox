@@ -49,6 +49,34 @@ public:
 		bool is_valid(const uint16_t recycleCount) const { return m_index != InvalidIndex && m_recycleCount == recycleCount; }
 	};
 
+public:
+	class iterator {
+	private:
+		typename std::vector< Buffer >::iterator m_ite;
+
+	public:
+		iterator( typename std::vector< Buffer >::iterator ite )
+			:m_ite(ite)
+		{}
+
+	public:
+		iterator& operator++() {
+			++m_ite;
+			return *this;
+		}
+		iterator& operator--() {
+			--m_ite;
+			return *this;
+		}
+
+		Value& operator*() { return m_ite->m_value; }
+		Value* operator->() { return &m_ite->m_value; }
+
+		bool operator==(const iterator rhs) const {
+			return m_ite == rhs.m_ite;
+		}
+	};
+
 private:
 	uint32_t m_usedSize;
 	uint32_t m_freeSize;
@@ -67,6 +95,9 @@ public:
 	~CTInstancePool() {}
 
 public:
+	iterator begin() { return iterator(m_buffers.begin()); }
+	iterator end() { return iterator(m_buffers.end()); }
+
 	bool empty() const { return size() == 0; }
 
 	size_t size() const { return m_usedSize; }
@@ -103,5 +134,11 @@ public:
 
 		return handle(createdIndex, m_recycleCount);
 	}
+
+public:// util methods
+	iterator to_iterator(const handle& h) {
+		return iterator(m_buffers.begin() + h.get_index());
+	}
+
 };
 

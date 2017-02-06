@@ -67,3 +67,17 @@ TEST_F(CTInstancePoolTest, handle_is_steady) {
 
 	ASSERT_EQ(v[handle].m_value, 100);
 }
+
+TEST_F(CTInstancePoolTest, iterator) {
+
+	CTInstancePool<TestData> v;
+
+	auto handle = v.add(TestData(100));
+	CTInstancePool<TestData>::iterator it = v.to_iterator(handle);
+	ASSERT_EQ(it->m_value, 100);
+	ASSERT_EQ((*it).m_value, 100);
+
+	ASSERT_EQ(v.begin(), it);
+	ASSERT_EQ(++v.begin(), v.end());
+	ASSERT_EQ(v.begin(), --v.end());
+}
