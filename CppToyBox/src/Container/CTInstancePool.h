@@ -75,6 +75,9 @@ public:
 		bool operator==(const Iterator rhs) const {
 			return m_ite == rhs.m_ite;
 		}
+		bool operator!=(const Iterator rhs) const {
+			return m_ite != rhs.m_ite;
+		}
 	};
 
 private:
