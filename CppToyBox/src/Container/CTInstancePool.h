@@ -30,7 +30,7 @@ private:
 	};
 
 public:
-	class handle {
+	class Handle {
 	public:
 		static const uint16_t InvalidIndex = UINT16_MAX;
 
@@ -39,7 +39,7 @@ public:
 		uint16_t m_recycleCount;
 
 	public:
-		handle(const uint16_t index, const uint16_t recycleCount)
+		Handle(const uint16_t index, const uint16_t recycleCount)
 			:m_index(index)
 			,m_recycleCount(recycleCount)
 		{}
@@ -50,21 +50,21 @@ public:
 	};
 
 public:
-	class iterator {
+	class Iterator {
 	private:
 		typename std::vector< Buffer >::iterator m_ite;
 
 	public:
-		iterator( typename std::vector< Buffer >::iterator ite )
+		Iterator( typename std::vector< Buffer >::iterator ite )
 			:m_ite(ite)
 		{}
 
 	public:
-		iterator& operator++() {
+		Iterator& operator++() {
 			++m_ite;
 			return *this;
 		}
-		iterator& operator--() {
+		Iterator& operator--() {
 			--m_ite;
 			return *this;
 		}
@@ -72,7 +72,7 @@ public:
 		Value& operator*() { return m_ite->m_value; }
 		Value* operator->() { return &m_ite->m_value; }
 
-		bool operator==(const iterator rhs) const {
+		bool operator==(const Iterator rhs) const {
 			return m_ite == rhs.m_ite;
 		}
 	};
@@ -95,8 +95,8 @@ public:
 	~CTInstancePool() {}
 
 public:
-	iterator begin() { return iterator(m_buffers.begin()); }
-	iterator end() { return iterator(m_buffers.end()); }
+	Iterator begin() { return Iterator(m_buffers.begin()); }
+	Iterator end() { return Iterator(m_buffers.end()); }
 
 	bool empty() const { return size() == 0; }
 
@@ -104,15 +104,15 @@ public:
 
 	void reserve(size_t s) { m_buffers.reserve(s); }
 
-	Value& operator[](const handle& h) {
+	Value& operator[](const Handle& h) {
 		return m_buffers[h.get_index()].m_value;
 	}
 
-	handle add(const Value& v) {
+	Handle add(const Value& v) {
 
 		++m_recycleCount;
 
-		uint16_t createdIndex = handle::InvalidIndex;
+		uint16_t createdIndex = Handle::InvalidIndex;
 
 		if (0 < m_freeSize) {
 			auto retIte = std::find_if(m_buffers.begin(), m_buffers.end(), [](const auto& buffer) {
@@ -132,12 +132,12 @@ public:
 
 		++m_usedSize;
 
-		return handle(createdIndex, m_recycleCount);
+		return Handle(createdIndex, m_recycleCount);
 	}
 
 public:// util methods
-	iterator to_iterator(const handle& h) {
-		return iterator(m_buffers.begin() + h.get_index());
+	Iterator to_iterator(const Handle& h) {
+		return Iterator(m_buffers.begin() + h.get_index());
 	}
 
 };
