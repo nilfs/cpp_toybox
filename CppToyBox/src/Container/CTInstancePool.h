@@ -111,7 +111,7 @@ public:
 		return m_buffers[h.get_index()].m_value;
 	}
 
-	Handle add(const Instance& v) {
+	Handle add(const Instance& ins) {
 
 		++m_recycleCount;
 
@@ -122,15 +122,21 @@ public:
 				return buffer.m_status == Buffer::Status::Unuse;
 			});
 			assert(retIte != m_buffers.end());
-			new(&retIte->m_value) Instance(v);
+			new(&retIte->m_value) Instance(ins);
 			retIte->m_status = Buffer::Status::Used;
 			--m_freeSize;
 
 			createdIndex = static_cast<int16_t>(retIte - m_buffers.begin());
 		}
 		else {
-			m_buffers.emplace_back(Buffer::Status::Used, v );
+			// unmark end of buffer
+			(--m_buffers.end()).m_end = false;
+
+			m_buffers.emplace_back(Buffer::Status::Used, ins );
 			createdIndex = static_cast<int16_t>(m_buffers.size() - 1);
+
+			// mark end of buffer
+			(--m_buffers.end()).m_end = true;
 		}
 
 		++m_usedSize;
@@ -142,6 +148,8 @@ public:// util methods
 	Iterator to_iterator(const Handle& h) {
 		return Iterator(m_buffers.begin() + h.get_index());
 	}
+
+private:
 
 };
 
