@@ -5,6 +5,10 @@
 struct TestData {
 
 public:
+	static int32_t s_constructCounter;
+	static int32_t s_destructCounter;
+
+public:
 	int32_t m_value;
 
 public:
@@ -12,12 +16,23 @@ public:
 	:m_value(v)
 	{
 		std::cout << "TestData construct" << std::endl;
+		++s_constructCounter;
 	}
 
 	~TestData() {
 		std::cout << "TestData destruct" << std::endl;
+		++s_destructCounter;
+	}
+
+public:
+	static void TearDown() {
+		s_constructCounter = 0;
+		s_destructCounter = 0;
 	}
 };
+int32_t TestData::s_constructCounter = 0;
+int32_t TestData::s_destructCounter = 0;
+
 
 class CTInstancePoolTest : public ::testing::Test {
 protected:
@@ -32,6 +47,7 @@ protected:
 	}
 
 	virtual void TearDown() {
+		TestData::TearDown();
 	}
 };
 
@@ -84,12 +100,18 @@ TEST_F(CTInstancePoolTest, iterator) {
 
 TEST_F(CTInstancePoolTest, remove_instance) {
 
-	CTInstancePool<TestData> v;
-	v.emplace_add(100);
-	auto handle = v.emplace_add(200);
-	v.emplace_add(300);
-	ASSERT_EQ(v.size(), 3);
+	{
+		CTInstancePool<TestData> v;
+		v.emplace_add(100);
+		auto handle = v.emplace_add(200);
+		v.emplace_add(300);
+		ASSERT_EQ(v.size(), 3);
 
-	v.remove(handle);
-	ASSERT_EQ(v.size(), 2);
+		v.remove(handle);
+		ASSERT_EQ(TestData::s_destructCounter, 1);
+		ASSERT_EQ(v.size(), 2);
+	}
+
+	ASSERT_EQ(TestData::s_constructCounter, 3);
+	ASSERT_EQ(TestData::s_destructCounter, 3);
 }
