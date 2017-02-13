@@ -3,6 +3,8 @@
 #include <vector>
 #include <algorithm>
 
+#define CTInstancePool_Assert_ValidHandle(handle) assert(_check_valid_handle(handle))
+
 template< typename Instance >
 class CTInstancePool
 {
@@ -17,16 +19,22 @@ private:
 	public:
 		Status m_status : 7;
 		bool m_end : 1;//end of instance pool
-		Instance m_value;
+		char m_value[sizeof(Instance)];
 
 	public:
 		Buffer()
 			:m_status(false)
 		{}
-		Buffer(const Status status, const Instance& value)
+		template<class... Valty>
+		Buffer(const Status status, Valty&&... val)
 			:m_status(status)
-			,m_value(std::move(value))
-		{}
+			//,m_value()
+		{
+			CT_PLACEMENT_NEW(m_value, Instance)((val)...);
+		}
+
+	public:
+		Instance& get_instance() { return *reinterpret_cast<Instance*>(m_value); }
 	};
 
 public:
@@ -69,8 +77,8 @@ public:
 			return *this;
 		}
 
-		Instance& operator*() { return m_ite->m_value; }
-		Instance* operator->() { return &m_ite->m_value; }
+		Instance& operator*() { return m_ite->get_instance(); }
+		Instance* operator->() { return &m_ite->get_instance(); }
 
 		bool operator==(const Iterator rhs) const {
 			return m_ite == rhs.m_ite;
@@ -93,9 +101,14 @@ public:
 		,m_recycleCount(0)
 		//,m_buffers()
 	{
-
 	}
-	~CTInstancePool() {}
+	~CTInstancePool() {
+		for (Buffer& buffer : m_buffers) {
+			if (buffer.m_status == Buffer::Status::Used) {
+				CT_PLACEMENT_DELETE(&buffer.get_instance());
+			}
+		}
+	}
 
 public:
 	Iterator begin() { return Iterator(m_buffers.begin()); }
@@ -108,33 +121,42 @@ public:
 	void reserve(size_t s) { m_buffers.reserve(s); }
 
 	Instance& operator[](const Handle& h) {
-		return m_buffers[h.get_index()].m_value;
+		return m_buffers[h.get_index()].get_instance();
 	}
 
+	// add into element
 	Handle add(const Instance& ins) {
+		return emplace_add(ins);
+	}
 
+	// add by moving into element
+	template<class... _Valty>
+	Handle emplace_add(_Valty&&... _Val)
+	{
 		++m_recycleCount;
 
 		uint16_t createdIndex = Handle::InvalidIndex;
 
 		if (0 < m_freeSize) {
+
 			auto retIte = std::find_if(m_buffers.begin(), m_buffers.end(), [](const auto& buffer) {
 				return buffer.m_status == Buffer::Status::Unuse;
 			});
 			assert(retIte != m_buffers.end());
-			new(&retIte->m_value) Instance(ins);
+			CT_PLACEMENT_NEW(&retIte->m_value, Instance)((_Val)...);
 			retIte->m_status = Buffer::Status::Used;
 			--m_freeSize;
 
 			createdIndex = static_cast<int16_t>(retIte - m_buffers.begin());
+
 		}
 		else {
 			// unmark end of buffer
-			if( 0 < m_buffers.size() ) {
+			if (0 < m_buffers.size()) {
 				(--m_buffers.end())->m_end = false;
 			}
 
-			m_buffers.emplace_back(Buffer::Status::Used, ins );
+			m_buffers.emplace_back(Buffer::Status::Used, (_Val)...);
 			createdIndex = static_cast<int16_t>(m_buffers.size() - 1);
 
 			// mark end of buffer
@@ -146,15 +168,34 @@ public:
 		return Handle(createdIndex, m_recycleCount);
 	}
 
-	void remove(const Handle& handle ) {
+	// remove element
+	void remove(const Handle& handle) {
+		CTInstancePool_Assert_ValidHandle(handle);
+
+		auto& buffer = _get_buffer_unsafe(handle);
+		buffer.m_status = Buffer::Status::Unuse;
+		CT_PLACEMENT_DELETE(&buffer.get_instance());
+
+		--m_usedSize;
+		++m_freeSize;
 	}
 
 public:// util methods
 	Iterator to_iterator(const Handle& h) {
 		return Iterator(m_buffers.begin() + h.get_index());
 	}
-
 private:
+	Buffer& _get_buffer_unsafe(const Handle& handle) { return m_buffers[handle.get_index()]; }
 
+	bool _check_valid_handle(const Handle& handle) const {
+		bool retval = true;
+		if (m_buffers.size() < handle.get_index()) {
+			retval = false;
+		}
+		else if (m_buffers[handle.get_index()].m_status != Buffer::Status::Used) {
+			retval = false;
+		}
+		return retval;
+	}
 };
 

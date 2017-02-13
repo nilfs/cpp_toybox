@@ -27,6 +27,9 @@
     <ClInclude Include="src\Container\CTInstancePool.h">
       <Filter>Container</Filter>
     </ClInclude>
+    <ClInclude Include="src\CppToybox.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

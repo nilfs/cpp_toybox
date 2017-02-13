@@ -14,3 +14,4 @@
 
 // TODO: プログラムに必要な追加ヘッダーをここで参照してください
 #include "gtest/gtest.h"
+#include "CppToybox.h"

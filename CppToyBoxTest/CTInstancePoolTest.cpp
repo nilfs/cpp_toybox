@@ -11,11 +11,11 @@ public:
 	TestData(int32_t v)
 	:m_value(v)
 	{
-	//	std::cout << "TestData construct" << std::endl;
+		std::cout << "TestData construct" << std::endl;
 	}
 
 	~TestData() {
-	//	std::cout << "TestData destruct" << std::endl;
+		std::cout << "TestData destruct" << std::endl;
 	}
 };
 
@@ -85,9 +85,9 @@ TEST_F(CTInstancePoolTest, iterator) {
 TEST_F(CTInstancePoolTest, remove_instance) {
 
 	CTInstancePool<TestData> v;
-	v.add(TestData(100));
-	auto handle = v.add(TestData(200));
-	v.add(TestData(300));
+	v.emplace_add(100);
+	auto handle = v.emplace_add(200);
+	v.emplace_add(300);
 	ASSERT_EQ(v.size(), 3);
 
 	v.remove(handle);
