@@ -98,6 +98,24 @@ TEST_F(CTInstancePoolTest, iterator) {
 	ASSERT_EQ(v.begin(), --v.end());
 }
 
+TEST_F(CTInstancePoolTest, reserve) {
+
+	CTInstancePool<TestData> v;
+	v.reserve(3);
+
+	ASSERT_EQ(v.size(), 0);
+	ASSERT_EQ(v.capacity(), 3);
+	ASSERT_EQ(TestData::s_constructCounter, 0);
+	ASSERT_EQ(TestData::s_destructCounter, 0);
+
+	v.emplace_add(100);
+
+	ASSERT_EQ(v.size(), 1);
+	ASSERT_EQ(v.capacity(), 3);
+	ASSERT_EQ(TestData::s_constructCounter, 1);
+	ASSERT_EQ(TestData::s_destructCounter, 0);
+}
+
 TEST_F(CTInstancePoolTest, remove_instance) {
 
 	{

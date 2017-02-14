@@ -114,6 +114,8 @@ public:
 	Iterator begin() { return Iterator(m_buffers.begin()); }
 	Iterator end() { return Iterator(m_buffers.end()); }
 
+	size_t capacity() const { return m_buffers.capacity(); }
+
 	bool empty() const { return size() == 0; }
 
 	size_t size() const { return m_usedSize; }
