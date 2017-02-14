@@ -15,12 +15,12 @@ public:
 	TestData(int32_t v)
 	:m_value(v)
 	{
-		std::cout << "TestData construct" << std::endl;
+//		std::cout << "TestData construct" << std::endl;
 		++s_constructCounter;
 	}
 
 	~TestData() {
-		std::cout << "TestData destruct" << std::endl;
+//		std::cout << "TestData destruct" << std::endl;
 		++s_destructCounter;
 	}
 
