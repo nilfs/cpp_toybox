@@ -95,7 +95,24 @@ TEST_F(CTInstancePoolTest, iterator) {
 
 	ASSERT_EQ(v.begin(), it);
 	ASSERT_EQ(++v.begin(), v.end());
-	ASSERT_EQ(v.begin(), --v.end());
+}
+
+TEST_F(CTInstancePoolTest, iterator_skip_unused_buffer) {
+
+	CTInstancePool<TestData> v;
+
+	v.add(TestData(100));
+	auto removeTarget = v.add(TestData(200));
+	v.add(TestData(300));
+
+	v.remove(removeTarget);
+
+	ASSERT_EQ(v.size(), 2);
+
+	auto it = v.begin();
+	ASSERT_EQ(it->m_value, 100);//first value
+	++it;
+	ASSERT_EQ(it->m_value, 300);//third value
 }
 
 TEST_F(CTInstancePoolTest, reserve) {

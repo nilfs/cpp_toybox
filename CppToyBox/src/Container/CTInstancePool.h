@@ -8,7 +8,7 @@
 template< typename Instance >
 class CTInstancePool
 {
-private:
+public:
 	struct Buffer {
 	public:
 		enum class Status : uint8_t {
@@ -17,20 +17,40 @@ private:
 		};
 
 	public:
-		Status m_status : 7;
-		bool m_end : 1;//end of instance pool
+		Status m_status : 6;
+		bool m_begin : 1;//begin position of instance pool
+		bool m_end : 1;//end position of instance pool
 		char m_value[sizeof(Instance)];
 
 	public:
 		Buffer()
-			:m_status(false)
+			:m_status(Status::Unuse)
+			,m_begin(false)
+			,m_end(false)
+			//,m_value()
+		{}
+		Buffer(Status status)
+			:m_status(status)
+			,m_begin(false)
+			,m_end(false)
+			//,m_value()
 		{}
 		template<class... Valty>
 		Buffer(const Status status, Valty&&... val)
 			:m_status(status)
+			,m_begin(false)
+			,m_end(false)
 			//,m_value()
 		{
 			CT_PLACEMENT_NEW(m_value, Instance)((val)...);
+		}
+		Buffer(const Status status, const Instance& instance)
+			:m_status(status)
+			,m_begin(false)
+			,m_end(false)
+			//,m_value()
+		{
+			CT_PLACEMENT_NEW(m_value, Instance)(instance);
 		}
 
 	public:
@@ -69,11 +89,17 @@ public:
 
 	public:
 		Iterator& operator++() {
-			++m_ite;
-			return *this;
-		}
-		Iterator& operator--() {
-			--m_ite;
+			if( m_ite->m_end ){
+				// end position
+				++m_ite;
+			}
+			else {
+				++m_ite;
+				// skip unused buffer
+				while (!m_ite->m_end && m_ite->m_status != Buffer::Status::Used) {
+					++m_ite;
+				}
+			}
 			return *this;
 		}
 
@@ -150,7 +176,6 @@ public:
 			--m_freeSize;
 
 			createdIndex = static_cast<int16_t>(retIte - m_buffers.begin());
-
 		}
 		else {
 			// unmark end of buffer
@@ -162,6 +187,7 @@ public:
 			createdIndex = static_cast<int16_t>(m_buffers.size() - 1);
 
 			// mark end of buffer
+			m_buffers.begin()->m_begin = true;
 			(--m_buffers.end())->m_end = true;
 		}
 
