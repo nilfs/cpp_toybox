@@ -97,6 +97,24 @@ TEST_F(CTInstancePoolTest, iterator) {
 	ASSERT_EQ(++v.begin(), v.end());
 }
 
+TEST_F(CTInstancePoolTest, reverse_iterator) {
+
+	std::vector<int> vv;
+	vv.push_back(100);
+
+	vv.rbegin();
+
+	CTInstancePool<TestData> v;
+
+	auto handle = v.add(TestData(100));
+	auto it = v.to_reverse_iterator(handle);
+	ASSERT_EQ(it->m_value, 100);
+	ASSERT_EQ((*it).m_value, 100);
+
+	ASSERT_EQ(v.rbegin(), it);
+	ASSERT_EQ(++v.rbegin(), v.rend());
+}
+
 TEST_F(CTInstancePoolTest, iterator_skip_unused_buffer) {
 
 	CTInstancePool<TestData> v;

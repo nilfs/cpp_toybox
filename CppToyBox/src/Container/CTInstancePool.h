@@ -113,6 +113,41 @@ public:
 			return m_ite != rhs.m_ite;
 		}
 	};
+	class ReverseIterator {
+	private:
+		typename std::vector< Buffer >::reverse_iterator m_ite;
+
+	public:
+		ReverseIterator(typename std::vector< Buffer >::reverse_iterator ite)
+			:m_ite(ite)
+		{}
+
+	public:
+		ReverseIterator& operator++() {
+			if (m_ite->m_begin) {
+				// begin position
+				++m_ite;
+			}
+			else {
+				++m_ite;
+				// skip unused buffer
+				while (!m_ite->m_begin && m_ite->m_status != Buffer::Status::Used) {
+					++m_ite;
+				}
+			}
+			return *this;
+		}
+
+		Instance& operator*() { return m_ite->get_instance(); }
+		Instance* operator->() { return &m_ite->get_instance(); }
+
+		bool operator==(const ReverseIterator rhs) const {
+			return m_ite == rhs.m_ite;
+		}
+		bool operator!=(const ReverseIterator rhs) const {
+			return m_ite != rhs.m_ite;
+		}
+	};
 
 private:
 	uint32_t m_usedSize;
@@ -139,6 +174,8 @@ public:
 public:
 	Iterator begin() { return Iterator(m_buffers.begin()); }
 	Iterator end() { return Iterator(m_buffers.end()); }
+	ReverseIterator rbegin() { return ReverseIterator(m_buffers.rbegin()); }
+	ReverseIterator rend() { return ReverseIterator(m_buffers.rend()); }
 
 	size_t capacity() const { return m_buffers.capacity(); }
 
@@ -212,6 +249,11 @@ public:// util methods
 	Iterator to_iterator(const Handle& h) {
 		return Iterator(m_buffers.begin() + h.get_index());
 	}
+
+	ReverseIterator to_reverse_iterator(const Handle& h) {
+		return ReverseIterator(m_buffers.rbegin() + h.get_index());
+	}
+
 private:
 	Buffer& _get_buffer_unsafe(const Handle& handle) { return m_buffers[handle.get_index()]; }
 
