@@ -163,3 +163,27 @@ TEST_F(CTInstancePoolTest, remove_instance) {
 	ASSERT_EQ(TestData::s_constructCounter, 3);
 	ASSERT_EQ(TestData::s_destructCounter, 3);
 }
+
+TEST_F(CTInstancePoolTest, alignment) {
+
+	struct TestData2 {
+		int32_t a;
+		int32_t b;
+
+		TestData2(int32_t _a, int32_t _b)
+			:a(_a)
+			, b(_b)
+		{
+
+		}
+	};
+
+	const auto testDataAligment = alignof(TestData2);
+	ASSERT_EQ(alignof(CTInstancePool<TestData2>::Buffer), testDataAligment);
+	ASSERT_EQ(sizeof(CTInstancePool<TestData2>::Buffer), 12);
+
+	CTInstancePool<TestData2> v;
+	auto handle = v.emplace_add(INT32_MAX, INT32_MAX);
+	auto& data = v[handle];
+	ASSERT_EQ((uintptr_t)(&data) % testDataAligment, 0);
+}

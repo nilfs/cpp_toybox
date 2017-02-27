@@ -20,7 +20,7 @@ public:
 		Status m_status : 6;
 		bool m_begin : 1;//begin position of instance pool
 		bool m_end : 1;//end position of instance pool
-		char m_value[sizeof(Instance)];
+		alignas( alignof(Instance) ) char m_value[sizeof(Instance)];
 
 	public:
 		Buffer()
