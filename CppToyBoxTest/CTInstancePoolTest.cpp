@@ -99,11 +99,6 @@ TEST_F(CTInstancePoolTest, iterator) {
 
 TEST_F(CTInstancePoolTest, reverse_iterator) {
 
-	std::vector<int> vv;
-	vv.push_back(100);
-
-	vv.rbegin();
-
 	CTInstancePool<TestData> v;
 
 	auto handle = v.add(TestData(100));
