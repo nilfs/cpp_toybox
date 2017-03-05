@@ -32,13 +32,6 @@ public:
 			,m_recycleCount(0)
 			//,m_value()
 		{}
-		Buffer(Status status)
-			:m_status(status)
-			,m_begin(false)
-			,m_end(false)
-			,m_recycleCount(0)
-			//,m_value()
-		{}
 		template<class... Valty>
 		Buffer(const Status status, uint16_t recycleCount, Valty&&... val)
 			:m_status(status)
