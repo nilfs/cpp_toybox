@@ -21,6 +21,7 @@ public:
 		Status m_status : 6;
 		bool m_begin : 1;//begin position of instance pool
 		bool m_end : 1;//end position of instance pool
+		uint16_t m_recycleCount;//value for determining whether it is regenerated buffer
 		alignas( alignof(Instance) ) char m_value[sizeof(Instance)];
 
 	public:
@@ -28,27 +29,31 @@ public:
 			:m_status(Status::Unuse)
 			,m_begin(false)
 			,m_end(false)
+			,m_recycleCount(0)
 			//,m_value()
 		{}
 		Buffer(Status status)
 			:m_status(status)
 			,m_begin(false)
 			,m_end(false)
+			,m_recycleCount(0)
 			//,m_value()
 		{}
 		template<class... Valty>
-		Buffer(const Status status, Valty&&... val)
+		Buffer(const Status status, uint16_t recycleCount, Valty&&... val)
 			:m_status(status)
 			,m_begin(false)
 			,m_end(false)
+			,m_recycleCount(recycleCount)
 			//,m_value()
 		{
 			CT_PLACEMENT_NEW(m_value, Instance)((val)...);
 		}
-		Buffer(const Status status, const Instance& instance)
+		Buffer(const Status status, uint16_t recycleCount, const Instance& instance)
 			:m_status(status)
 			,m_begin(false)
 			,m_end(false)
+			,m_recycleCount(recycleCount)
 			//,m_value()
 		{
 			CT_PLACEMENT_NEW(m_value, Instance)(instance);
@@ -64,8 +69,8 @@ public:
 		static const uint16_t InvalidIndex = UINT16_MAX;
 
 	private:
-		uint16_t m_index;
-		uint16_t m_recycleCount;
+		uint16_t m_index;//index of instance pool
+		uint16_t m_recycleCount;//value for determining whether it is regenerated buffer
 
 	public:
 		Handle(const uint16_t index, const uint16_t recycleCount)
@@ -75,6 +80,7 @@ public:
 
 	public:
 		uint16_t get_index() const { return m_index; }
+		uint16_t get_recycle_count() const { return m_recycleCount; }
 		bool is_valid(const uint16_t recycleCount) const { return m_index != InvalidIndex && m_recycleCount == recycleCount; }
 	};
 
@@ -211,6 +217,7 @@ public:// STL like methods
 			assert(retIte != m_buffers.end());
 			CT_PLACEMENT_NEW(&retIte->m_value, Instance)((_Val)...);
 			retIte->m_status = Buffer::Status::Used;
+			retIte->m_recycleCount = m_recycleCount;
 			--m_freeSize;
 
 			createdIndex = static_cast<int16_t>(retIte - m_buffers.begin());
@@ -221,7 +228,7 @@ public:// STL like methods
 				(--m_buffers.end())->m_end = false;
 			}
 
-			m_buffers.emplace_back(Buffer::Status::Used, (_Val)...);
+			m_buffers.emplace_back(Buffer::Status::Used, m_recycleCount, (_Val)...);
 			createdIndex = static_cast<int16_t>(m_buffers.size() - 1);
 
 			// mark end of buffer
@@ -265,10 +272,19 @@ private:
 	bool _check_valid_handle(const Handle& handle) const {
 		bool retval = true;
 		if (m_buffers.size() < handle.get_index()) {
+			// probably old or broken handle.
 			retval = false;
 		}
-		else if (m_buffers[handle.get_index()].m_status != Buffer::Status::Used) {
-			retval = false;
+		else{
+			const auto& buffer = m_buffers[handle.get_index()];
+			if (buffer.m_status != Buffer::Status::Used) {
+				// unused buffer
+				retval = false;
+			}
+			else if (buffer.m_recycleCount != handle.get_recycle_count()) {
+				// probably old or broken handle.
+				retval = false;
+			}
 		}
 		return retval;
 	}
