@@ -5,6 +5,7 @@
 
 #define CTInstancePool_Assert_ValidHandle(handle) assert(_check_valid_handle(handle))
 
+
 template< typename Instance >
 class CTInstancePool
 {
@@ -171,7 +172,7 @@ public:
 		}
 	}
 
-public:
+public:// STL like methods
 	Iterator begin() { return Iterator(m_buffers.begin()); }
 	Iterator end() { return Iterator(m_buffers.end()); }
 	ReverseIterator rbegin() { return ReverseIterator(m_buffers.rbegin()); }
@@ -252,6 +253,10 @@ public:// util methods
 
 	ReverseIterator to_reverse_iterator(const Handle& h) {
 		return ReverseIterator(m_buffers.rbegin() + h.get_index());
+	}
+
+	bool is_valid( const Handle& handle ) const {
+		return _check_valid_handle( handle );
 	}
 
 private:

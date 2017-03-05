@@ -187,3 +187,17 @@ TEST_F(CTInstancePoolTest, alignment) {
 	auto& data = v[handle];
 	ASSERT_EQ((uintptr_t)(&data) % testDataAligment, 0);
 }
+
+TEST_F(CTInstancePoolTest, is_valid_handle) {
+
+	CTInstancePool<TestData> v;
+
+	auto handle1 = v.emplace_add(100);
+	ASSERT_EQ(v.is_valid(handle1), true);
+	v.remove(handle1);
+	ASSERT_EQ(v.is_valid(handle1), false);
+
+	auto handle2 = v.emplace_add(100);
+	ASSERT_EQ(v.is_valid(handle1), false);
+	ASSERT_EQ(v.is_valid(handle2), true);
+}
