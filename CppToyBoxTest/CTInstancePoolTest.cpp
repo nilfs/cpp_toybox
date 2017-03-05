@@ -177,10 +177,7 @@ TEST_F(CTInstancePoolTest, alignment) {
 
 		}
 	};
-
 	const auto testDataAligment = alignof(TestData2);
-	ASSERT_EQ(alignof(CTInstancePool<TestData2>::Buffer), testDataAligment);
-	ASSERT_EQ(sizeof(CTInstancePool<TestData2>::Buffer), 12);
 
 	CTInstancePool<TestData2> v;
 	auto handle = v.emplace_add(INT32_MAX, INT32_MAX);

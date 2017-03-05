@@ -9,7 +9,7 @@
 template< typename Instance >
 class CTInstancePool
 {
-public:
+private:
 	struct Buffer {
 	public:
 		enum class Status : uint8_t {
