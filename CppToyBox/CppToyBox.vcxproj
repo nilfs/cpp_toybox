@@ -136,11 +136,13 @@
   <ItemGroup>
     <ClInclude Include="src\Container\CTInstancePool.h" />
     <ClInclude Include="src\CppToybox.h" />
+    <ClInclude Include="src\System\QueryEngine\CTQueryEngine.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Container\CTInstancePool.cpp" />
+    <ClCompile Include="src\System\QueryEngine\CTQueryEngine.cpp" />
     <ClCompile Include="stdafx.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

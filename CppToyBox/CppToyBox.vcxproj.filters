@@ -16,6 +16,12 @@
     <Filter Include="Container">
       <UniqueIdentifier>{3b9e8710-2e5c-483b-ba66-cff975e9d92c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="System">
+      <UniqueIdentifier>{ee38f13e-c997-4736-9477-d27cf81b2e53}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="System\QueryEngine">
+      <UniqueIdentifier>{edf040ff-ecae-46cb-abb4-3550d97ce7ad}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -30,6 +36,9 @@
     <ClInclude Include="src\CppToybox.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="src\System\QueryEngine\CTQueryEngine.h">
+      <Filter>System\QueryEngine</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -37,6 +46,9 @@
     </ClCompile>
     <ClCompile Include="src\Container\CTInstancePool.cpp">
       <Filter>Container</Filter>
+    </ClCompile>
+    <ClCompile Include="src\System\QueryEngine\CTQueryEngine.cpp">
+      <Filter>System\QueryEngine</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

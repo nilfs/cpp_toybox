@@ -16,6 +16,12 @@
     <Filter Include="Container">
       <UniqueIdentifier>{655939eb-f5a6-4e20-98f6-9d4c0c84c30d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="System">
+      <UniqueIdentifier>{d85ed6db-f6b2-4716-a4aa-800e9b80b088}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="System\QueryEngine">
+      <UniqueIdentifier>{71407bd6-08be-4d1d-bb7d-e870a13076d3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -37,6 +43,9 @@
     </ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="test\System\QueryEngine\CTQueryEngineTest.cpp">
+      <Filter>System\QueryEngine</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
