@@ -279,7 +279,7 @@ public:// STL like methods
 			}
 		}
 		m_usedSize = 0;
-		m_freeSize = m_buffers.size();
+		m_freeSize = static_cast<uint32_t>(m_buffers.size());
 	}
 
 public:// util methods
