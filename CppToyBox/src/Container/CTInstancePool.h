@@ -269,6 +269,19 @@ public:// STL like methods
 		++m_freeSize;
 	}
 
+	// remove all element
+	void clear()
+	{
+		for (Buffer& buffer : m_buffers) {
+			if (buffer.m_status == Buffer::Status::Used) {
+				buffer.m_status = Buffer::Status::Unuse;
+				CT_PLACEMENT_DELETE(&buffer.get_instance());
+			}
+		}
+		m_usedSize = 0;
+		m_freeSize = m_buffers.size();
+	}
+
 public:// util methods
 	Iterator to_iterator(const Handle& h) {
 		return Iterator(m_buffers.begin() + h.get_index());

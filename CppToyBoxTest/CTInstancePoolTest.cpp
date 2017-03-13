@@ -222,3 +222,19 @@ TEST_F(CTInstancePoolTest, is_valid_handle) {
 	ASSERT_EQ(v.is_valid(handle1), false);
 	ASSERT_EQ(v.is_valid(handle2), true);
 }
+
+TEST_F(CTInstancePoolTest, clear) {
+
+	CTInstancePool<TestData> v;
+
+	v.emplace_add(100);
+	v.emplace_add(200);
+	v.emplace_add(300);
+
+	ASSERT_EQ(TestData::s_constructCounter, 3);
+	ASSERT_EQ(TestData::s_destructCounter, 0);
+
+	v.clear();
+
+	ASSERT_EQ(TestData::s_destructCounter, 3);
+}
