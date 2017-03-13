@@ -103,10 +103,10 @@ TEST_F(CTInstancePoolTest, const_iterator) {
 	auto handle = v.add(TestData(100));
 	
 	const auto& v2 = v;
-	CTInstancePool<TestData>::Iterator it = v2.to_iterator(handle);
+	CTInstancePool<TestData>::ConstIterator it = v2.to_iterator(handle);
 
 	ASSERT_EQ(v2.begin(), it);
-	ASSERT_EQ(++v2.begin(), v.end());
+	ASSERT_EQ(++v2.begin(), v2.end());
 }
 
 TEST_F(CTInstancePoolTest, reverse_iterator) {
@@ -128,10 +128,10 @@ TEST_F(CTInstancePoolTest, const_reverse_iterator) {
 	auto handle = v.add(TestData(100));
 
 	const auto& v2 = v;
-	CTInstancePool<TestData>::Iterator it = v2.to_iterator(handle);
+	CTInstancePool<TestData>::ConstReverseIterator it = v2.to_reverse_iterator(handle);
 
 	ASSERT_EQ(v2.rbegin(), it);
-	ASSERT_EQ(++v2.rbegin(), v.rend());
+	ASSERT_EQ(++v2.rbegin(), v2.rend());
 }
 
 TEST_F(CTInstancePoolTest, iterator_skip_unused_buffer) {

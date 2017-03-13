@@ -77,19 +77,31 @@ public:
 		bool is_valid(const uint16_t recycleCount) const { return m_index != InvalidIndex && m_recycleCount == recycleCount; }
 	};
 
-public:
-	class Iterator {
-	private:
-		typename std::vector< Buffer >::iterator m_ite;
+private:
+	template< typename BufferIteratorType>
+	class _BaseIterator {
+	protected:
+		BufferIteratorType m_ite;
 
 	public:
-		Iterator( typename std::vector< Buffer >::iterator ite )
+		_BaseIterator(BufferIteratorType ite)
 			:m_ite(ite)
 		{}
 
 	public:
-		Iterator& operator++() {
-			if( m_ite->m_end ){
+		auto& operator*() { return m_ite->get_instance(); }
+		auto* operator->() { return &m_ite->get_instance(); }
+
+		bool operator==(const _BaseIterator rhs) const {
+			return m_ite == rhs.m_ite;
+		}
+		bool operator!=(const _BaseIterator rhs) const {
+			return m_ite != rhs.m_ite;
+		}
+
+	public:
+		_BaseIterator& operator++() {
+			if (m_ite->m_end) {
 				// end position
 				++m_ite;
 			}
@@ -102,28 +114,31 @@ public:
 			}
 			return *this;
 		}
-
-		Instance& operator*() { return m_ite->get_instance(); }
-		Instance* operator->() { return &m_ite->get_instance(); }
-
-		bool operator==(const Iterator rhs) const {
-			return m_ite == rhs.m_ite;
-		}
-		bool operator!=(const Iterator rhs) const {
-			return m_ite != rhs.m_ite;
-		}
 	};
-	class ReverseIterator {
-	private:
-		typename std::vector< Buffer >::reverse_iterator m_ite;
+
+	template< typename BufferIteratorType>
+	class _ReverseBaseIterator {
+	protected:
+		BufferIteratorType m_ite;
 
 	public:
-		ReverseIterator(typename std::vector< Buffer >::reverse_iterator ite)
+		_ReverseBaseIterator(BufferIteratorType ite)
 			:m_ite(ite)
 		{}
 
 	public:
-		ReverseIterator& operator++() {
+		auto& operator*() { return m_ite->get_instance(); }
+		auto* operator->() { return &m_ite->get_instance(); }
+
+		bool operator==(const _ReverseBaseIterator rhs) const {
+			return m_ite == rhs.m_ite;
+		}
+		bool operator!=(const _ReverseBaseIterator rhs) const {
+			return m_ite != rhs.m_ite;
+		}
+
+	public:
+		_ReverseBaseIterator& operator++() {
 			if (m_ite->m_begin) {
 				// begin position
 				++m_ite;
@@ -137,17 +152,14 @@ public:
 			}
 			return *this;
 		}
-
-		Instance& operator*() { return m_ite->get_instance(); }
-		Instance* operator->() { return &m_ite->get_instance(); }
-
-		bool operator==(const ReverseIterator rhs) const {
-			return m_ite == rhs.m_ite;
-		}
-		bool operator!=(const ReverseIterator rhs) const {
-			return m_ite != rhs.m_ite;
-		}
 	};
+
+
+public:
+	using Iterator = _BaseIterator< typename std::vector< Buffer >::iterator >;
+	using ConstIterator = _BaseIterator< typename std::vector< Buffer >::const_iterator >;
+	using ReverseIterator = _BaseIterator< typename std::vector< Buffer >::reverse_iterator >;
+	using ConstReverseIterator = _BaseIterator< typename std::vector< Buffer >::const_reverse_iterator >;
 
 private:
 	uint32_t m_usedSize;
@@ -173,9 +185,20 @@ public:
 
 public:// STL like methods
 	Iterator begin() { return Iterator(m_buffers.begin()); }
+	ConstIterator begin() const { return ConstIterator(m_buffers.begin()); }
+	ConstIterator cbegin() const { return ConstIterator(m_buffers.begin()); }
+
 	Iterator end() { return Iterator(m_buffers.end()); }
+	ConstIterator end() const { return ConstIterator(m_buffers.end()); }
+	ConstIterator cend() const { return ConstIterator(m_buffers.end()); }
+
 	ReverseIterator rbegin() { return ReverseIterator(m_buffers.rbegin()); }
+	ConstReverseIterator rbegin() const { return ConstReverseIterator(m_buffers.rbegin()); }
+	ConstReverseIterator crbegin() const { return ConstReverseIterator(m_buffers.rbegin()); }
+
 	ReverseIterator rend() { return ReverseIterator(m_buffers.rend()); }
+	ConstReverseIterator rend() const { return ConstReverseIterator(m_buffers.rend()); }
+	ConstReverseIterator crend() const { return ConstReverseIterator(m_buffers.rend()); }
 
 	size_t capacity() const { return m_buffers.capacity(); }
 
@@ -250,9 +273,21 @@ public:// util methods
 	Iterator to_iterator(const Handle& h) {
 		return Iterator(m_buffers.begin() + h.get_index());
 	}
+	ConstIterator to_iterator(const Handle& h) const {
+		return ConstIterator(m_buffers.begin() + h.get_index());
+	}
+	ConstIterator to_const_iterator(const Handle& h) const {
+		return ConstIterator(m_buffers.begin() + h.get_index());
+	}
 
 	ReverseIterator to_reverse_iterator(const Handle& h) {
 		return ReverseIterator(m_buffers.rbegin() + h.get_index());
+	}
+	ConstReverseIterator to_reverse_iterator(const Handle& h) const {
+		return ConstReverseIterator(m_buffers.rbegin() + h.get_index());
+	}
+	ConstReverseIterator to_const_reverse_iterator(const Handle& h) {
+		return ConstReverseIterator(m_buffers.rbegin() + h.get_index());
 	}
 
 	bool is_valid( const Handle& handle ) const {
