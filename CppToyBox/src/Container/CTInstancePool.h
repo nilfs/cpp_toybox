@@ -212,6 +212,9 @@ public:// STL like methods
 	Instance& operator[](const Handle& h) {
 		return m_buffers[h.get_index()].get_instance();
 	}
+	const Instance& operator[] (const Handle& h) const {
+		return m_buffers[h.get_index()].get_instance();
+	}
 
 	// add into element
 	Handle add(const Instance& ins) {
