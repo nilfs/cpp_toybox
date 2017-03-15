@@ -54,6 +54,7 @@ private:
 
 	public:
 		Instance& get_instance() { return *reinterpret_cast<Instance*>(m_value); }
+		const Instance& get_instance() const { return *reinterpret_cast<const Instance*>(m_value); }
 	};
 
 public:

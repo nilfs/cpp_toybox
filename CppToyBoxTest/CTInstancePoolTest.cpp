@@ -105,6 +105,9 @@ TEST_F(CTInstancePoolTest, const_iterator) {
 	const auto& v2 = v;
 	CTInstancePool<TestData>::ConstIterator it = v2.to_iterator(handle);
 
+	ASSERT_EQ(it->m_value, 100);
+	ASSERT_EQ((*it).m_value, 100);
+
 	ASSERT_EQ(v2.begin(), it);
 	ASSERT_EQ(++v2.begin(), v2.end());
 }
