@@ -110,31 +110,33 @@ TEST_F(CTInstancePoolTest, const_iterator) {
 
 	ASSERT_EQ(v2.begin(), it);
 	ASSERT_EQ(++v2.begin(), v2.end());
+	ASSERT_EQ(it, v.to_const_iterator(handle));
 }
 
 TEST_F(CTInstancePoolTest, reverse_iterator) {
 
 	CTInstancePool<TestData> v;
-
-	auto handle = v.add(TestData(100));
+	v.add(TestData(100));
+	v.add(TestData(200));
+	auto handle = v.add(TestData(300));
 	auto it = v.to_reverse_iterator(handle);
-	ASSERT_EQ(it->m_value, 100);
-	ASSERT_EQ((*it).m_value, 100);
-
-	ASSERT_EQ(v.rbegin(), it);
-	ASSERT_EQ(++v.rbegin(), v.rend());
+	ASSERT_EQ(it->m_value, 300);
+	ASSERT_EQ((*it).m_value, 300);
 }
 
 TEST_F(CTInstancePoolTest, const_reverse_iterator) {
 
 	CTInstancePool<TestData> v;
-	auto handle = v.add(TestData(100));
+	v.add(TestData(100));
+	v.add(TestData(200));
+	auto handle = v.add(TestData(300));
 
 	const auto& v2 = v;
 	CTInstancePool<TestData>::ConstReverseIterator it = v2.to_reverse_iterator(handle);
+	ASSERT_EQ(it->m_value, 300);
+	ASSERT_EQ((*it).m_value, 300);
 
-	ASSERT_EQ(v2.rbegin(), it);
-	ASSERT_EQ(++v2.rbegin(), v2.rend());
+	ASSERT_EQ(it, v.to_const_reverse_iterator(handle));
 }
 
 TEST_F(CTInstancePoolTest, iterator_skip_unused_buffer) {

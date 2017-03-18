@@ -298,13 +298,13 @@ public:// util methods
 	}
 
 	ReverseIterator to_reverse_iterator(const Handle& h) {
-		return ReverseIterator(m_buffers.rbegin() + h.get_index());
+		return ReverseIterator(m_buffers.rbegin() + (m_buffers.size() - h.get_index() - 1));
 	}
 	ConstReverseIterator to_reverse_iterator(const Handle& h) const {
-		return ConstReverseIterator(m_buffers.rbegin() + h.get_index());
+		return ConstReverseIterator(m_buffers.rbegin() + (m_buffers.size() - h.get_index() - 1));
 	}
 	ConstReverseIterator to_const_reverse_iterator(const Handle& h) {
-		return ConstReverseIterator(m_buffers.rbegin() + h.get_index());
+		return ConstReverseIterator(m_buffers.rbegin() + (m_buffers.size() - h.get_index() - 1));
 	}
 
 	bool is_valid( const Handle& handle ) const {
