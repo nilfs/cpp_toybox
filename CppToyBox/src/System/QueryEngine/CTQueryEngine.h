@@ -3,6 +3,7 @@
 #include <vector>
 #include <functional>
 #include <future>
+#include <memory>
 
 //from http://stackoverflow.com/questions/6512019/can-we-get-the-type-of-a-lambda-argument/35348334#35348334
 template<typename Ret, typename Arg, typename... Rest>
@@ -54,14 +55,14 @@ public:
 };
 
 template< typename ContainerType, typename Func, typename ResultType = my_result_of< Func > >
-class CTQueryIns : public CTQueryInsBase< ContainerType >
+class CTFunctorQueryIns : public CTQueryInsBase< ContainerType >
 {
 private:
 	std::promise<ResultType> m_result;
 	Func& m_func;
 
 public:
-	CTQueryIns(ContainerType& c, Func& f)
+	CTFunctorQueryIns(ContainerType& c, Func& f)
 	:CTQueryInsBase< ContainerType >(c)
 		,m_func(f)
 	{}
@@ -76,24 +77,41 @@ public:
 	std::future<ResultType> GetFuture() { return m_result.get_future(); }
 };
 
-
+template< typename QueryInsBase >
+class CTQueryTaskSystem
+{
+public:
+	virtual void RegisterQuery(std::shared_ptr<QueryInsBase> query) = 0;
+};
 
 template< typename ContainerType >
 class CTQueryEngine
 {
-private:
-	std::vector< CTQueryInsBase<ContainerType>* > m_queries;
+public:
+	using QueryInsBaseType = CTQueryInsBase< ContainerType >;
+	using TaskSystem = CTQueryTaskSystem< QueryInsBaseType >;
 
+public:
+	class Factory
+	{
+	public:
+		virtual TaskSystem* CreateTaskSystem() = 0;
+	};
+
+private:
+	std::vector< std::shared_ptr<QueryInsBaseType> > m_queries;
+
+	TaskSystem& m_taskSystem;
+//	Factory& m_factory;
+//	CTQueryTaskSystem<ContainerType>* m_taskSystem;
 	ContainerType m_data;
 
 public:
-	CTQueryEngine() {}
+	CTQueryEngine(TaskSystem& taskSystem)
+		:m_taskSystem(taskSystem)
+	{}
 	~CTQueryEngine()
 	{
-		for (auto* query : m_queries)
-		{
-			delete query;
-		}
 		m_queries.clear();
 	}
 
@@ -104,17 +122,51 @@ public:
 	template< typename Func, typename ResultType = my_result_of< Func > >
 	std::future< ResultType > RegisterQuery(Func f)
 	{
-		auto q = new CTQueryIns<ContainerType, Func, ResultType>(m_data, f);
+		auto q = std::make_shared< CTFunctorQueryIns<ContainerType, Func, ResultType> >(m_data, f);
+
+		m_taskSystem.RegisterQuery(q);
+
 		m_queries.push_back(q);
 		return q->GetFuture();
+	}
+};
+
+template< typename ContainerType, typename Func, typename ResultType = my_result_of< Func > >
+class CTSimpleQueryIns : public CTFunctorQueryIns< ContainerType, Func, ResultType>
+{
+
+};
+
+// Simple Task System.
+// Query runs on main thread
+template< typename ContainerType>
+class CTSimpleQueryTaskSystem : public CTQueryTaskSystem< CTQueryInsBase<ContainerType> >
+{
+private:
+	std::vector< std::shared_ptr< CTQueryInsBase<ContainerType> > > m_queries;
+
+public:
+	virtual void RegisterQuery(std::shared_ptr< CTQueryInsBase<ContainerType> > query)
+	{
+		m_queries.push_back(query);
 	}
 
 public:
 	void Update()
 	{
-		for (auto* query : m_queries)
+		for (auto query : m_queries)
 		{
 			query->Exec();
 		}
+	}
+};
+
+template< typename ContainerType>
+class CTSimpleQueryEngineFactory : public CTQueryEngine< CTQueryInsBase< ContainerType > >::Factory
+{
+public:
+	CTQueryTaskSystem< CTQueryInsBase< ContainerType > >* CreateTaskSystem() override
+	{
+		return new CTSimpleQueryTaskSystem< ContainerType >();
 	}
 };

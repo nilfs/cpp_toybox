@@ -21,7 +21,10 @@ protected:
 
 TEST_F(CTQueryEngineTest, register_collection) {
 
-	CTQueryEngine< std::vector<int> > engine;
+//	CTSimpleQueryEngineFactory< std::vector<int> > factory;
+	CTSimpleQueryTaskSystem< std::vector<int> > taskSystem;
+
+	CTQueryEngine< std::vector<int> > engine(taskSystem);
 
 	std::vector<int> data;
 	data.resize(10);
@@ -45,7 +48,7 @@ TEST_F(CTQueryEngineTest, register_collection) {
 		return retval;
 	});
 
-	engine.Update();
+	taskSystem.Update();
 
 	{
 		std::cout << "------" << std::endl;
