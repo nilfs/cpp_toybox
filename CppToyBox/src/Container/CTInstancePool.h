@@ -101,6 +101,7 @@ private:
 		}
 
 	public:
+
 		_BaseIterator& operator++() {
 			if (m_ite->m_end) {
 				// end position
@@ -114,6 +115,16 @@ private:
 				}
 			}
 			return *this;
+		}
+
+		_BaseIterator operator+(uint32_t offset) {
+			_BaseIterator retval(*this);
+
+			for (uint32_t i = 0; i < offset; ++i) {
+				++retval;
+			}
+
+			return retval;
 		}
 	};
 
@@ -167,6 +178,7 @@ private:
 	uint32_t m_freeSize;
 	uint16_t m_recycleCount;
 	std::vector< Buffer > m_buffers;
+	uint16_t m_bufferEndIndex;
 
 public:
 	CTInstancePool()
@@ -174,6 +186,7 @@ public:
 		,m_freeSize(0)
 		,m_recycleCount(0)
 		//,m_buffers()
+		,m_bufferEndIndex(0)
 	{
 	}
 	~CTInstancePool() {
@@ -189,17 +202,17 @@ public:// STL like methods
 	ConstIterator begin() const { return ConstIterator(m_buffers.begin()); }
 	ConstIterator cbegin() const { return ConstIterator(m_buffers.begin()); }
 
-	Iterator end() { return Iterator(m_buffers.end()); }
-	ConstIterator end() const { return ConstIterator(m_buffers.end()); }
-	ConstIterator cend() const { return ConstIterator(m_buffers.end()); }
+	Iterator end() { return to_iterator({ m_bufferEndIndex, 0 }); }
+	ConstIterator end() const { return to_const_iterator({ m_bufferEndIndex, 0 }); }
+	ConstIterator cend() const { return to_const_iterator({ m_bufferEndIndex, 0 }); }
 
-	ReverseIterator rbegin() { return ReverseIterator(m_buffers.rbegin()); }
+	ReverseIterator rbegin() { return m_buffers.rbegin(); }
 	ConstReverseIterator rbegin() const { return ConstReverseIterator(m_buffers.rbegin()); }
 	ConstReverseIterator crbegin() const { return ConstReverseIterator(m_buffers.rbegin()); }
 
-	ReverseIterator rend() { return ReverseIterator(m_buffers.rend()); }
-	ConstReverseIterator rend() const { return ConstReverseIterator(m_buffers.rend()); }
-	ConstReverseIterator crend() const { return ConstReverseIterator(m_buffers.rend()); }
+	ReverseIterator rend() { return to_reverse_iterator({ m_bufferEndIndex, 0 }); }
+	ConstReverseIterator rend() const { return to_const_reverse_iterator({ m_bufferEndIndex, 0 }); }
+	ConstReverseIterator crend() const { return to_const_reverse_iterator({ m_bufferEndIndex, 0 }); }
 
 	size_t capacity() const { return m_buffers.capacity(); }
 
@@ -254,6 +267,7 @@ public:// STL like methods
 			// mark end of buffer
 			m_buffers.begin()->m_begin = true;
 			(--m_buffers.end())->m_end = true;
+			m_bufferEndIndex = createdIndex + 1;
 		}
 
 		++m_usedSize;
@@ -266,6 +280,9 @@ public:// STL like methods
 		CTInstancePool_Assert_ValidHandle(handle);
 
 		auto& buffer = _get_buffer_unsafe(handle);
+		if (buffer.m_end) {
+			_mark_next_end_of_buffer(handle);
+		}
 		buffer.m_status = Buffer::Status::Unuse;
 		CT_PLACEMENT_DELETE(&buffer.get_instance());
 
@@ -284,6 +301,7 @@ public:// STL like methods
 		}
 		m_usedSize = 0;
 		m_freeSize = static_cast<uint32_t>(m_buffers.size());
+		m_bufferEndIndex = 0;
 	}
 
 public:// util methods
@@ -313,6 +331,22 @@ public:// util methods
 
 private:
 	Buffer& _get_buffer_unsafe(const Handle& handle) { return m_buffers[handle.get_index()]; }
+
+	// mark new end instance.
+	// find end of buffer from `ite`
+	void _mark_next_end_of_buffer(const Handle& handle)
+	{
+		auto ite = m_buffers.rbegin() + (m_buffers.size() - handle.get_index());
+		while (ite != m_buffers.rend()) {
+
+			if (ite->m_status == Buffer::Status::Used) {
+				ite->m_end = true;
+				m_bufferEndIndex = static_cast<uint16_t>(m_buffers.size() - std::distance(m_buffers.rbegin(), ite));
+				break;
+			}
+			++ite;
+		}
+	}
 
 	bool _check_valid_handle(const Handle& handle) const {
 		bool retval = true;

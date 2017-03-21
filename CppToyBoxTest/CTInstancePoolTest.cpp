@@ -141,20 +141,45 @@ TEST_F(CTInstancePoolTest, const_reverse_iterator) {
 
 TEST_F(CTInstancePoolTest, iterator_skip_unused_buffer) {
 
-	CTInstancePool<TestData> v;
+	{
+		SCOPED_TRACE("erase 2nd value");
 
-	v.add(TestData(100));
-	auto removeTarget = v.add(TestData(200));
-	v.add(TestData(300));
+		CTInstancePool<TestData> v;
 
-	v.remove(removeTarget);
+		v.add(TestData(100));
+		auto removeTarget = v.add(TestData(200));
+		v.add(TestData(300));
 
-	ASSERT_EQ(v.size(), 2);
+		v.remove(removeTarget);
 
-	auto it = v.begin();
-	ASSERT_EQ(it->m_value, 100);//first value
-	++it;
-	ASSERT_EQ(it->m_value, 300);//third value
+		ASSERT_EQ(v.size(), 2);
+
+		auto it = v.begin();
+		ASSERT_EQ(it->m_value, 100);//first value
+		++it;
+		ASSERT_EQ(it->m_value, 300);//third value
+		ASSERT_EQ(++it, v.end());
+	}
+
+	{
+		SCOPED_TRACE("erase 3rd value");
+
+		CTInstancePool<TestData> v;
+
+		v.add(TestData(100));
+		v.add(TestData(200));
+		auto removeTarget = v.add(TestData(300));
+
+		v.remove(removeTarget);
+
+		ASSERT_EQ(v.size(), 2);
+
+		auto it = v.begin();
+		ASSERT_EQ(it->m_value, 100);//first value
+		++it;
+		ASSERT_EQ(it->m_value, 200);//second value
+		ASSERT_EQ(++it, v.end());
+	}
 }
 
 TEST_F(CTInstancePoolTest, reserve) {
@@ -176,7 +201,6 @@ TEST_F(CTInstancePoolTest, reserve) {
 }
 
 TEST_F(CTInstancePoolTest, remove_instance) {
-
 	{
 		CTInstancePool<TestData> v;
 		v.emplace_add(100);
@@ -187,10 +211,21 @@ TEST_F(CTInstancePoolTest, remove_instance) {
 		v.remove(handle);
 		ASSERT_EQ(TestData::s_destructCounter, 1);
 		ASSERT_EQ(v.size(), 2);
+
+		ASSERT_EQ(TestData::s_constructCounter, 3);
+		ASSERT_EQ(TestData::s_destructCounter, 1);
 	}
 
-	ASSERT_EQ(TestData::s_constructCounter, 3);
-	ASSERT_EQ(TestData::s_destructCounter, 3);
+	{
+		SCOPED_TRACE("erase one instance");
+
+		CTInstancePool<TestData> v;
+		auto handle = v.emplace_add(100);
+		ASSERT_EQ(v.size(), 1);
+
+		v.remove(handle);
+		ASSERT_EQ(v.size(), 0);
+	}
 }
 
 TEST_F(CTInstancePoolTest, alignment) {
@@ -242,4 +277,6 @@ TEST_F(CTInstancePoolTest, clear) {
 	v.clear();
 
 	ASSERT_EQ(TestData::s_destructCounter, 3);
+
+	ASSERT_EQ(v.begin(), v.end());
 }
