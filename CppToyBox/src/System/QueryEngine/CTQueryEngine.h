@@ -91,19 +91,10 @@ public:
 	using QueryInsBaseType = CTQueryInsBase< ContainerType >;
 	using TaskSystem = CTQueryTaskSystem< QueryInsBaseType >;
 
-public:
-	class Factory
-	{
-	public:
-		virtual TaskSystem* CreateTaskSystem() = 0;
-	};
-
 private:
 	std::vector< std::shared_ptr<QueryInsBaseType> > m_queries;
 
 	TaskSystem& m_taskSystem;
-//	Factory& m_factory;
-//	CTQueryTaskSystem<ContainerType>* m_taskSystem;
 	ContainerType m_data;
 
 public:
@@ -137,6 +128,49 @@ class CTSimpleQueryIns : public CTFunctorQueryIns< ContainerType, Func, ResultTy
 
 };
 
+// Simple Task System for background task.
+// Query runs on main thread
+template< typename ContainerType>
+class CTBackgroundQueryTaskSystem : public CTQueryTaskSystem< CTQueryInsBase<ContainerType> >
+{
+private:
+	std::thread m_queryExecThread;
+	std::vector< std::shared_ptr< CTQueryInsBase<ContainerType> > > m_queries;
+
+public:
+	~CTBackgroundQueryTaskSystem()
+	{
+		if (m_queryExecThread.joinable())
+		{
+			// wait for prev task
+			m_queryExecThread.join();
+		}
+	}
+
+public:
+	virtual void RegisterQuery(std::shared_ptr< CTQueryInsBase<ContainerType> > query)
+	{
+		m_queries.push_back(query);
+	}
+
+public:
+	void Update()
+	{
+		if (m_queryExecThread.joinable())
+		{
+			// wait for prev task
+			m_queryExecThread.join();
+		}
+
+		m_queryExecThread = std::thread([this]() {
+			for (auto query : m_queries)
+			{
+				query->Exec();
+			}
+		});
+	}
+};
+
 // Simple Task System.
 // Query runs on main thread
 template< typename ContainerType>
@@ -158,15 +192,5 @@ public:
 		{
 			query->Exec();
 		}
-	}
-};
-
-template< typename ContainerType>
-class CTSimpleQueryEngineFactory : public CTQueryEngine< CTQueryInsBase< ContainerType > >::Factory
-{
-public:
-	CTQueryTaskSystem< CTQueryInsBase< ContainerType > >* CreateTaskSystem() override
-	{
-		return new CTSimpleQueryTaskSystem< ContainerType >();
 	}
 };
