@@ -91,7 +91,7 @@ private:
 		using pointer = typename const value_type*;
 		using reference = typename const value_type&;
 
-	public:
+	protected:
 		BufferIteratorType m_ite;
 
 	public:
