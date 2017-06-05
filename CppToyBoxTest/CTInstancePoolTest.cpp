@@ -53,11 +53,19 @@ protected:
 
 TEST_F(CTInstancePoolTest, size) {
 
+	std::vector<int> vv;
+	std::vector<int>::const_iterator i;
+
+	vv.begin() - i;
+	
+
 	CTInstancePool<TestData> v;
 
 	v.add(TestData(100));
 	v.add(TestData(200));
 	v.add(TestData(300));
+
+	v.begin() - v.begin();
 
 	ASSERT_EQ(v.size(), 3);
 }
@@ -179,6 +187,11 @@ TEST_F(CTInstancePoolTest, iterator_skip_unused_buffer) {
 		++it;
 		ASSERT_EQ(it->m_value, 200);//second value
 		ASSERT_EQ(++it, v.end());
+
+		for (auto vv : v)
+		{
+			printf("v: %d", vv.m_value);
+		}
 	}
 }
 
@@ -206,26 +219,35 @@ TEST_F(CTInstancePoolTest, remove_instance) {
 		v.emplace_add(100);
 		auto handle = v.emplace_add(200);
 		v.emplace_add(300);
+		v.emplace_add(400);
+		v.emplace_add(500);
+		ASSERT_EQ(v.size(), 5);
+
+		// remove 200
+		v.remove(handle);
+		ASSERT_EQ(v.size(), 4);
+
+		// remove 100
+		v.remove(v.begin());
 		ASSERT_EQ(v.size(), 3);
+		ASSERT_EQ(v.begin()->m_value, 300);
 
-		v.remove(handle);
-		ASSERT_EQ(TestData::s_destructCounter, 1);
+		// remove 300
+		v.remove(v.cbegin());
 		ASSERT_EQ(v.size(), 2);
-
-		ASSERT_EQ(TestData::s_constructCounter, 3);
-		ASSERT_EQ(TestData::s_destructCounter, 1);
+		ASSERT_EQ(v.begin()->m_value, 400);
 	}
+}
 
-	{
-		SCOPED_TRACE("erase one instance");
+TEST_F(CTInstancePoolTest, remove_one_instance) {
+	SCOPED_TRACE("erase one instance");
 
-		CTInstancePool<TestData> v;
-		auto handle = v.emplace_add(100);
-		ASSERT_EQ(v.size(), 1);
+	CTInstancePool<TestData> v;
+	auto handle = v.emplace_add(100);
+	ASSERT_EQ(v.size(), 1);
 
-		v.remove(handle);
-		ASSERT_EQ(v.size(), 0);
-	}
+	v.remove(handle);
+	ASSERT_EQ(v.size(), 0);
 }
 
 TEST_F(CTInstancePoolTest, alignment) {

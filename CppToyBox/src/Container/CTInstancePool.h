@@ -18,6 +18,9 @@ private:
 		};
 
 	public:
+		using InstanceType = Instance;
+
+	public:
 		Status m_status : 6;
 		bool m_begin : 1;//begin position of instance pool
 		bool m_end : 1;//end position of instance pool
@@ -80,29 +83,36 @@ public:
 
 private:
 	template< typename BufferIteratorType>
-	class _BaseIterator {
-	protected:
+	class _ConstBaseIterator {
+	public:
+		using iterator_category = typename std::random_access_iterator_tag;
+		using value_type = typename std::iterator_traits<BufferIteratorType>::value_type::InstanceType;
+		using difference_type = typename std::iterator_traits<BufferIteratorType>::difference_type;
+		using pointer = typename const value_type*;
+		using reference = typename const value_type&;
+
+	public:
 		BufferIteratorType m_ite;
 
 	public:
-		_BaseIterator(BufferIteratorType ite)
+		_ConstBaseIterator(BufferIteratorType ite)
 			:m_ite(ite)
 		{}
 
 	public:
-		auto& operator*() { return m_ite->get_instance(); }
-		auto* operator->() { return &m_ite->get_instance(); }
+		reference operator*() { return m_ite->get_instance(); }
+		const value_type* operator->() { return &m_ite->get_instance(); }
 
-		bool operator==(const _BaseIterator rhs) const {
+		bool operator==(const _ConstBaseIterator rhs) const {
 			return m_ite == rhs.m_ite;
 		}
-		bool operator!=(const _BaseIterator rhs) const {
+		bool operator!=(const _ConstBaseIterator rhs) const {
 			return m_ite != rhs.m_ite;
 		}
 
 	public:
 
-		_BaseIterator& operator++() {
+		_ConstBaseIterator& operator++() {
 			if (m_ite->m_end) {
 				// end position
 				++m_ite;
@@ -117,14 +127,24 @@ private:
 			return *this;
 		}
 
-		_BaseIterator operator+(uint32_t offset) {
-			_BaseIterator retval(*this);
+		_ConstBaseIterator operator+(uint32_t offset) {
+			_ConstBaseIterator retval(*this);
 
 			for (uint32_t i = 0; i < offset; ++i) {
 				++retval;
 			}
 
 			return retval;
+		}
+
+	public:
+		difference_type operator-(const _ConstBaseIterator& rhs) const {
+			return this->m_ite - rhs.m_ite;
+		}
+
+		Handle to_handle( const CTInstancePool& instancePool ) const
+		{
+			return Handle(static_cast<uint16_t>(this->m_ite - instancePool.begin().m_ite), m_ite->m_recycleCount);
 		}
 	};
 
@@ -164,15 +184,77 @@ private:
 			}
 			return *this;
 		}
+
+	public:
+		Handle to_handle(const CTInstancePool& instancePool) const
+		{
+			return Handle((*this - instancePool.begin()), m_ite->m_recycleCount);
+		}
+	};
+
+	template< typename BufferIteratorType>
+	class _BaseIterator : public _ConstBaseIterator< BufferIteratorType > {
+	public:
+		using iterator_category = typename std::random_access_iterator_tag;
+		using value_type = typename std::iterator_traits<BufferIteratorType>::value_type::InstanceType;
+		using difference_type = typename std::iterator_traits<BufferIteratorType>::difference_type;
+		using pointer = typename value_type*;
+		using reference = typename value_type&;
+
+		reference operator*() { return const_cast<reference>(m_ite->get_instance()); }
+		pointer operator->() { return const_cast<pointer>(&m_ite->get_instance()); }
+
+		bool operator==(const _BaseIterator rhs) const {
+			return m_ite == rhs.m_ite;
+		}
+		bool operator!=(const _BaseIterator rhs) const {
+			return m_ite != rhs.m_ite;
+		}
+
+	public:
+		_BaseIterator(BufferIteratorType ite)
+			:_ConstBaseIterator(ite)
+		{}
+
+	public:
+
+		_BaseIterator& operator++() {
+			if (m_ite->m_end) {
+				// end position
+				++m_ite;
+			}
+			else {
+				++m_ite;
+				// skip unused buffer
+				while (!m_ite->m_end && m_ite->m_status != Buffer::Status::Used) {
+					++m_ite;
+				}
+			}
+			return *this;
+		}
+
+		_BaseIterator operator+(uint32_t offset) {
+			_BaseIterator retval(*this);
+
+			for (uint32_t i = 0; i < offset; ++i) {
+				++retval;
+			}
+
+			return retval;
+		}
+
+		difference_type operator-(const _ConstBaseIterator& rhs) const {
+			return *(const _ConstBaseIterator*)this - rhs;
+		}
 	};
 
 
 public:
 	using Iterator = _BaseIterator< typename std::vector< Buffer >::iterator >;
-	using ConstIterator = _BaseIterator< typename std::vector< Buffer >::const_iterator >;
+	using ConstIterator = _ConstBaseIterator< typename std::vector< Buffer >::const_iterator >;
 	using ReverseIterator = _BaseIterator< typename std::vector< Buffer >::reverse_iterator >;
 	using ConstReverseIterator = _BaseIterator< typename std::vector< Buffer >::const_reverse_iterator >;
-
+	
 private:
 	uint32_t m_usedSize;
 	uint32_t m_freeSize;
@@ -289,6 +371,22 @@ public:// STL like methods
 		--m_usedSize;
 		++m_freeSize;
 	}
+	// remove element
+	void remove(const Iterator& ite) {
+		remove(to_handle(ite));
+	}
+	// remove element
+	void remove(const ConstIterator& ite) {
+		remove(to_handle(ite));
+	}
+	// remove element
+	void remove(const ReverseIterator& ite) {
+		remove(to_handle(ite));
+	}
+	// remove element
+	void remove(const ConstReverseIterator& ite) {
+		remove(to_handle(ite));
+	}
 
 	// remove all element
 	void clear()
@@ -323,6 +421,19 @@ public:// util methods
 	}
 	ConstReverseIterator to_const_reverse_iterator(const Handle& h) {
 		return ConstReverseIterator(m_buffers.rbegin() + (m_buffers.size() - h.get_index() - 1));
+	}
+
+	Handle to_handle(const Iterator& ite) const {
+		return ite.to_handle(*this);
+	}
+	Handle to_handle(const ConstIterator& ite) const {
+		return ite.to_handle(*this);
+	}
+	Handle to_handle(const ReverseIterator& ite) const {
+		return ite.to_handle(*this);
+	}
+	Handle to_handle(const ConstReverseIterator& ite) const {
+		return ite.to_handle(*this);
 	}
 
 	bool is_valid( const Handle& handle ) const {
