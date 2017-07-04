@@ -18,6 +18,9 @@ private:
 		};
 
 	public:
+		using InstanceType = Instance;
+
+	public:
 		Status m_status : 6;
 		bool m_begin : 1;//begin position of instance pool
 		bool m_end : 1;//end position of instance pool
@@ -81,7 +84,16 @@ public:
 private:
 	template< typename BufferIteratorType>
 	class _BaseIterator {
-	protected:
+		friend CTInstancePool;//for to_handle() to implement
+
+	public:
+		using iterator_category = typename std::random_access_iterator_tag;
+		using value_type = typename std::iterator_traits<BufferIteratorType>::value_type::InstanceType;
+		using difference_type = typename std::iterator_traits<BufferIteratorType>::difference_type;
+		using pointer = typename const value_type*;
+		using reference = typename const value_type&;
+
+	private:
 		BufferIteratorType m_ite;
 
 	public:
@@ -90,8 +102,8 @@ private:
 		{}
 
 	public:
-		auto& operator*() { return m_ite->get_instance(); }
-		auto* operator->() { return &m_ite->get_instance(); }
+		reference operator*() { return m_ite->get_instance(); }
+		pointer operator->() { return &m_ite->get_instance(); }
 
 		bool operator==(const _BaseIterator rhs) const {
 			return m_ite == rhs.m_ite;
@@ -130,7 +142,7 @@ private:
 
 	template< typename BufferIteratorType>
 	class _ReverseBaseIterator {
-	protected:
+	private:
 		BufferIteratorType m_ite;
 
 	public:
@@ -178,6 +190,7 @@ private:
 	uint32_t m_freeSize;
 	uint16_t m_recycleCount;
 	std::vector< Buffer > m_buffers;
+	uint16_t m_bufferBeginIndex;
 	uint16_t m_bufferEndIndex;
 
 public:
@@ -186,6 +199,7 @@ public:
 		,m_freeSize(0)
 		,m_recycleCount(0)
 		//,m_buffers()
+		,m_bufferBeginIndex(0)
 		,m_bufferEndIndex(0)
 	{
 	}
@@ -198,21 +212,21 @@ public:
 	}
 
 public:// STL like methods
-	Iterator begin() { return Iterator(m_buffers.begin()); }
-	ConstIterator begin() const { return ConstIterator(m_buffers.begin()); }
-	ConstIterator cbegin() const { return ConstIterator(m_buffers.begin()); }
+	Iterator begin() { return Iterator(m_buffers.begin() + m_bufferBeginIndex); }
+	ConstIterator begin() const { return ConstIterator(m_buffers.begin() + m_bufferBeginIndex); }
+	ConstIterator cbegin() const { return ConstIterator(m_buffers.begin() + m_bufferBeginIndex); }
 
 	Iterator end() { return to_iterator({ m_bufferEndIndex, 0 }); }
 	ConstIterator end() const { return to_const_iterator({ m_bufferEndIndex, 0 }); }
 	ConstIterator cend() const { return to_const_iterator({ m_bufferEndIndex, 0 }); }
 
-	ReverseIterator rbegin() { return m_buffers.rbegin(); }
-	ConstReverseIterator rbegin() const { return ConstReverseIterator(m_buffers.rbegin()); }
-	ConstReverseIterator crbegin() const { return ConstReverseIterator(m_buffers.rbegin()); }
+	ReverseIterator rbegin() { return to_reverse_iterator({ m_bufferEndIndex - 1u, 0 }); }
+	ConstReverseIterator rbegin() const { return to_const_reverse_iterator({ m_bufferEndIndex - 1u, 0 }); }
+	ConstReverseIterator crbegin() const { return to_const_reverse_iterator({ m_bufferEndIndex - 1u, 0 }); }
 
-	ReverseIterator rend() { return to_reverse_iterator({ m_bufferEndIndex, 0 }); }
-	ConstReverseIterator rend() const { return to_const_reverse_iterator({ m_bufferEndIndex, 0 }); }
-	ConstReverseIterator crend() const { return to_const_reverse_iterator({ m_bufferEndIndex, 0 }); }
+	ReverseIterator rend() { return to_reverse_iterator({ m_bufferBeginIndex, 0 }); }
+	ConstReverseIterator rend() const { return to_const_reverse_iterator({ m_bufferBeginIndex, 0 }); }
+	ConstReverseIterator crend() const { return to_const_reverse_iterator({ m_bufferBeginIndex, 0 }); }
 
 	size_t capacity() const { return m_buffers.capacity(); }
 
@@ -254,6 +268,16 @@ public:// STL like methods
 			--m_freeSize;
 
 			createdIndex = static_cast<int16_t>(retIte - m_buffers.begin());
+
+			if (createdIndex < m_bufferBeginIndex) {
+				// new begin of buffer
+				(m_buffers.begin() + m_bufferBeginIndex)->m_begin = false;
+				retIte->m_begin = true;
+				m_bufferBeginIndex = createdIndex;
+			}
+			if (m_bufferEndIndex < createdIndex) {
+				// new end of buffer
+			}
 		}
 		else {
 			// unmark end of buffer
@@ -280,14 +304,36 @@ public:// STL like methods
 		CTInstancePool_Assert_ValidHandle(handle);
 
 		auto& buffer = _get_buffer_unsafe(handle);
+		if(buffer.m_begin) {
+			_mark_next_begin_of_buffer(handle);
+		}
+		buffer.m_status = Buffer::Status::Unuse;
+
 		if (buffer.m_end) {
 			_mark_next_end_of_buffer(handle);
 		}
-		buffer.m_status = Buffer::Status::Unuse;
+
 		CT_PLACEMENT_DELETE(&buffer.get_instance());
 
 		--m_usedSize;
 		++m_freeSize;
+	}
+
+	// remove element
+	void remove(const Iterator& ite) {
+		remove(to_handle(ite));
+	}
+	// remove element
+	void remove(const ConstIterator& ite) {
+		remove(to_handle(ite));
+	}
+	// remove element
+	void remove(const ReverseIterator& ite) {
+		remove(to_handle(ite));
+	}
+	// remove element
+	void remove(const ConstReverseIterator& ite) {
+		remove(to_handle(ite));
 	}
 
 	// remove all element
@@ -321,8 +367,22 @@ public:// util methods
 	ConstReverseIterator to_reverse_iterator(const Handle& h) const {
 		return ConstReverseIterator(m_buffers.rbegin() + (m_buffers.size() - h.get_index() - 1));
 	}
-	ConstReverseIterator to_const_reverse_iterator(const Handle& h) {
+	ConstReverseIterator to_const_reverse_iterator(const Handle& h) const {
 		return ConstReverseIterator(m_buffers.rbegin() + (m_buffers.size() - h.get_index() - 1));
+	}
+
+	Handle to_handle(const Iterator& ite) const {
+		return Handle(static_cast<uint16_t>(ite.m_ite - begin().m_ite), ite.m_ite->m_recycleCount);
+	}
+	Handle to_handle(const ConstIterator& ite) const {
+		return Handle(static_cast<uint16_t>(ite.m_ite - begin().m_ite), ite.m_ite->m_recycleCount);
+	}
+	Handle to_handle(const ReverseIterator& ite) const {
+		auto a = ite.m_ite - rbegin().m_ite;
+		return Handle(static_cast<uint16_t>(m_buffers.size() - a - 1), ite.m_ite->m_recycleCount);
+	}
+	Handle to_handle(const ConstReverseIterator& ite) const {
+		return Handle(static_cast<uint16_t>(ite.m_ite - rbegin().m_ite - m_buffers.size() - 1), ite.m_ite->m_recycleCount);
 	}
 
 	bool is_valid( const Handle& handle ) const {
@@ -331,6 +391,22 @@ public:// util methods
 
 private:
 	Buffer& _get_buffer_unsafe(const Handle& handle) { return m_buffers[handle.get_index()]; }
+
+	// mark new end instance.
+	// find begin of buffer from `ite`
+	void _mark_next_begin_of_buffer(const Handle& handle)
+	{
+		auto ite = m_buffers.begin() + handle.get_index() + 1;
+		while (ite != m_buffers.end()) {
+
+			if (ite->m_status == Buffer::Status::Used) {
+				ite->m_begin = true;
+				m_bufferBeginIndex = std::distance(m_buffers.begin(), ite);
+				break;
+			}
+			++ite;
+		}
+	}
 
 	// mark new end instance.
 	// find end of buffer from `ite`

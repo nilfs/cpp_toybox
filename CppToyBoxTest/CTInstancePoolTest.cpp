@@ -117,6 +117,8 @@ TEST_F(CTInstancePoolTest, reverse_iterator) {
 
 	CTInstancePool<TestData> v;
 	v.add(TestData(100));
+	ASSERT_EQ(v.rbegin()->m_value, 100);
+
 	v.add(TestData(200));
 	auto handle = v.add(TestData(300));
 	auto it = v.to_reverse_iterator(handle);
@@ -206,26 +208,53 @@ TEST_F(CTInstancePoolTest, remove_instance) {
 		v.emplace_add(100);
 		auto handle = v.emplace_add(200);
 		v.emplace_add(300);
+		v.emplace_add(400);
+		v.emplace_add(500);
+		ASSERT_EQ(v.size(), 5);
+
+		// remove 200
+		v.remove(handle);
+		ASSERT_EQ(v.size(), 4);
+/*
+		// remove 100
+		v.remove(v.begin());
 		ASSERT_EQ(v.size(), 3);
+		ASSERT_EQ(v.begin()->m_value, 300);
 
-		v.remove(handle);
-		ASSERT_EQ(TestData::s_destructCounter, 1);
+		// remove 300
+		v.remove(v.cbegin());
 		ASSERT_EQ(v.size(), 2);
-
-		ASSERT_EQ(TestData::s_constructCounter, 3);
-		ASSERT_EQ(TestData::s_destructCounter, 1);
+		ASSERT_EQ(v.begin()->m_value, 400);
+*/
 	}
+}
 
-	{
-		SCOPED_TRACE("erase one instance");
+TEST_F(CTInstancePoolTest, repeat_addition_and_deletion) {
 
-		CTInstancePool<TestData> v;
-		auto handle = v.emplace_add(100);
-		ASSERT_EQ(v.size(), 1);
+	CTInstancePool<TestData> v;
+	v.emplace_add(100);
+	v.emplace_add(200);
 
-		v.remove(handle);
-		ASSERT_EQ(v.size(), 0);
-	}
+	v.remove(v.cbegin());
+	ASSERT_EQ(v.begin()->m_value, 200);
+
+	v.emplace_add(100);
+	ASSERT_EQ(v.begin()->m_value, 100);
+
+	// remove back
+	v.remove(v.rbegin());
+	ASSERT_EQ(v.rbegin()->m_value, 100);
+
+	//// clear all use clear()
+	//v.clear();
+	//v.emplace_add(100);
+	//ASSERT_EQ(v.begin()->m_value, 100);
+
+	//// clear all use remove()
+	//v.remove(v.begin());
+	//v.emplace_add(100);
+	//v.emplace_add(200);
+	//ASSERT_EQ(v.begin()->m_value, 100);
 }
 
 TEST_F(CTInstancePoolTest, alignment) {
